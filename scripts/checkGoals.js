@@ -29,22 +29,22 @@ async function checkGoals() {
     const matches = response.data.matches || [];
 
     if (matches.length === 0) {
-      console.log("No matches found");
+      await sendNotification(
+        "✅ GoalPulseX Test",
+        "System is connected, but no matches found now."
+      );
       return;
     }
 
-    for (const match of matches) {
-      const homeGoals = match.score.fullTime.home ?? 0;
-      const awayGoals = match.score.fullTime.away ?? 0;
-      const totalGoals = homeGoals + awayGoals;
+    const match = matches[0];
 
-      if (totalGoals >= 3) {
-        await sendNotification(
-          "🔥 Goal Alert",
-          `${match.homeTeam.name} ${homeGoals} - ${awayGoals} ${match.awayTeam.name}`
-        );
-      }
-    }
+    const homeGoals = match.score.fullTime.home ?? 0;
+    const awayGoals = match.score.fullTime.away ?? 0;
+
+    await sendNotification(
+      "✅ GoalPulseX Test Alert",
+      `${match.homeTeam.name} ${homeGoals} - ${awayGoals} ${match.awayTeam.name}`
+    );
 
     console.log("Goal check completed");
   } catch (error) {
