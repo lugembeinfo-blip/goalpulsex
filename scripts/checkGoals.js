@@ -36,19 +36,26 @@ async function checkGoals() {
       return;
     }
 
-    const match = matches[0];
+    for (const match of matches) {
+      const homeGoals = match.score.fullTime.home ?? 0;
+      const awayGoals = match.score.fullTime.away ?? 0;
+      const totalGoals = homeGoals + awayGoals;
 
-    const homeGoals = match.score.fullTime.home ?? 0;
-    const awayGoals = match.score.fullTime.away ?? 0;
-
-    await sendNotification(
-      "✅ GoalPulseX Test Alert",
-      `${match.homeTeam.name} ${homeGoals} - ${awayGoals} ${match.awayTeam.name}`
-    );
+      // Send alert only if total goals are 3 or more
+      if (totalGoals >= 3) {
+        await sendNotification(
+          "🔥 Goal Alert",
+          `${match.competition.name}\n${match.homeTeam.name} ${homeGoals} - ${awayGoals} ${match.awayTeam.name}`
+        );
+      }
+    }
 
     console.log("Goal check completed");
   } catch (error) {
-    console.error("Goal checker error:", error.response?.data || error.message);
+    console.error(
+      "Goal checker error:",
+      error.response?.data || error.message
+    );
     process.exit(1);
   }
 }
@@ -63,6 +70,7 @@ async function sendNotification(title, body) {
   };
 
   await admin.messaging().send(message);
+
   console.log("Notification sent:", body);
 }
 
