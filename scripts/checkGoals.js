@@ -1,9 +1,7 @@
 const admin = require("firebase-admin");
-const fetch = require("node-fetch");
+const axios = require("axios");
 
-const serviceAccount = JSON.parse(
-  process.env.FIREBASE_SERVICE_ACCOUNT
-);
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -11,26 +9,22 @@ admin.initializeApp({
 
 async function checkGoals() {
   try {
-    const response = await fetch(
-      "https://api.football-data.org/v4/matches",
-      {
-        headers: {
-          "X-Auth-Token": process.env.FOOTBALL_API_TOKEN,
-        },
-      }
-    );
+    const response = await axios.get("https://api.football-data.org/v4/matches", {
+      headers: {
+        "X-Auth-Token": process.env.FOOTBALL_API_TOKEN,
+      },
+    });
 
-    const data = await response.json();
+    const matches = response.data.matches || [];
 
-    if (!data.matches) {
+    if (matches.length === 0) {
       console.log("No matches found");
       return;
     }
 
-    for (const match of data.matches) {
+    for (const match of matches) {
       const homeGoals = match.score.fullTime.home ?? 0;
       const awayGoals = match.score.fullTime.away ?? 0;
-
       const totalGoals = homeGoals + awayGoals;
 
       if (totalGoals >= 3) {
@@ -43,22 +37,18 @@ async function checkGoals() {
 
     console.log("Goal check completed");
   } catch (error) {
-    console.error(error);
+    console.error("Goal checker error:", error.response?.data || error.message);
   }
 }
 
 async function sendNotification(title, body) {
   const message = {
-    notification: {
-      title,
-      body,
-    },
+    notification: { title, body },
     topic: "goal_alerts",
   };
 
   await admin.messaging().send(message);
-
-  console.log("Notification sent");
+  console.log("Notification sent:", body);
 }
 
 checkGoals();
