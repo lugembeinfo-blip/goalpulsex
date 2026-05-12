@@ -19,11 +19,10 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: |
-          npm install firebase-admin axios
+        run: npm install
 
       - name: Run Goal Checker
-        run: node scripts/checkGoals.js
         env:
           FOOTBALL_API_TOKEN: ${{ secrets.FOOTBALL_API_TOKEN }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node scripts/checkGoals.js
