@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "255112373388",
+    "project_id": "goalpulsex-f1139",
+    "storage_bucket": "goalpulsex-f1139.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:255112373388:android:6d239a6f80600a635dc7a9",
+        "android_client_info": {
+          "package_name": "com.goalpulsex.goalpulsex"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzlMYXygS37tKBpAj4BjF7Kpgqw-rLvh8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
