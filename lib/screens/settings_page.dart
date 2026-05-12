@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/setting_tile.dart';
 import '../services/theme_provider.dart';
 
@@ -24,6 +26,46 @@ class _SettingsPageState extends State<SettingsPage> {
   String selectedTimeFormat = "24-hour";
   late bool autoRefreshEnabled;
 
+  @override
+  void initState() {
+    super.initState();
+    autoRefreshEnabled = widget.autoRefreshEnabled;
+    _loadNotificationSetting();
+  }
+
+  Future<void> _loadNotificationSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getBool("notifications_enabled") ?? true;
+
+    setState(() {
+      notificationsEnabled = saved;
+    });
+
+    if (saved) {
+      await FirebaseMessaging.instance.subscribeToTopic("goal_alerts");
+    } else {
+      await FirebaseMessaging.instance.unsubscribeFromTopic("goal_alerts");
+    }
+  }
+
+  Future<void> _toggleNotifications(bool val) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      notificationsEnabled = val;
+    });
+
+    await prefs.setBool("notifications_enabled", val);
+
+    if (val) {
+      await FirebaseMessaging.instance.subscribeToTopic("goal_alerts");
+      await FirebaseMessaging.instance.subscribeToTopic("live_updates");
+    } else {
+      await FirebaseMessaging.instance.unsubscribeFromTopic("goal_alerts");
+      await FirebaseMessaging.instance.unsubscribeFromTopic("live_updates");
+    }
+  }
+
   final Map<String, Map<String, String>> translations = {
     "English": {
       "darkMode": "Dark Mode",
@@ -41,131 +83,10 @@ class _SettingsPageState extends State<SettingsPage> {
       "logoutQuestion": "Are you sure you want to logout?",
       "loggedOut": "Logged out successfully",
     },
-    "Swahili": {
-      "darkMode": "Hali ya Giza",
-      "notifications": "Arifa",
-      "language": "Lugha",
-      "timekeeping": "Mpangilio wa Muda",
-      "about": "Kuhusu GoalPulseX",
-      "logout": "Toka",
-      "selectLanguage": "Chagua Lugha",
-      "timezone": "Ukanda wa Muda",
-      "timeFormat": "Muundo wa Muda",
-      "autoRefresh": "Jisasishe Kiotomatiki",
-      "refreshEvery": "Sasisha matokeo kila sekunde 30",
-      "cancel": "Ghairi",
-      "logoutQuestion": "Una uhakika unataka kutoka?",
-      "loggedOut": "Umetoka kikamilifu",
-    },
-    "Spanish": {
-      "darkMode": "Modo Oscuro",
-      "notifications": "Notificaciones",
-      "language": "Idioma",
-      "timekeeping": "Control de Tiempo",
-      "about": "Acerca de GoalPulseX",
-      "logout": "Cerrar sesión",
-      "selectLanguage": "Seleccionar idioma",
-      "timezone": "Zona horaria",
-      "timeFormat": "Formato de hora",
-      "autoRefresh": "Actualización automática",
-      "refreshEvery": "Actualizar resultados cada 30s",
-      "cancel": "Cancelar",
-      "logoutQuestion": "¿Seguro que quieres cerrar sesión?",
-      "loggedOut": "Sesión cerrada correctamente",
-    },
-    "French": {
-      "darkMode": "Mode Sombre",
-      "notifications": "Notifications",
-      "language": "Langue",
-      "timekeeping": "Gestion du Temps",
-      "about": "À propos de GoalPulseX",
-      "logout": "Déconnexion",
-      "selectLanguage": "Choisir la langue",
-      "timezone": "Fuseau horaire",
-      "timeFormat": "Format de l’heure",
-      "autoRefresh": "Actualisation auto",
-      "refreshEvery": "Actualiser les scores toutes les 30s",
-      "cancel": "Annuler",
-      "logoutQuestion": "Voulez-vous vraiment vous déconnecter ?",
-      "loggedOut": "Déconnexion réussie",
-    },
-    "Arabic": {
-      "darkMode": "الوضع الداكن",
-      "notifications": "الإشعارات",
-      "language": "اللغة",
-      "timekeeping": "ضبط الوقت",
-      "about": "حول GoalPulseX",
-      "logout": "تسجيل الخروج",
-      "selectLanguage": "اختر اللغة",
-      "timezone": "المنطقة الزمنية",
-      "timeFormat": "تنسيق الوقت",
-      "autoRefresh": "تحديث تلقائي",
-      "refreshEvery": "تحديث النتائج كل 30 ثانية",
-      "cancel": "إلغاء",
-      "logoutQuestion": "هل أنت متأكد أنك تريد تسجيل الخروج؟",
-      "loggedOut": "تم تسجيل الخروج بنجاح",
-    },
-
-    "Portuguese": {
-      "darkMode": "Modo Escuro",
-      "notifications": "Notificações",
-      "language": "Idioma",
-      "timekeeping": "Controle de Tempo",
-      "about": "Sobre GoalPulseX",
-      "logout": "Sair",
-      "selectLanguage": "Selecionar idioma",
-      "timezone": "Fuso horário",
-      "timeFormat": "Formato de hora",
-      "autoRefresh": "Atualização automática",
-      "refreshEvery": "Atualizar resultados a cada 30s",
-      "cancel": "Cancelar",
-      "logoutQuestion": "Tem certeza que deseja sair?",
-      "loggedOut": "Sessão encerrada com sucesso",
-    },
-
-    "German": {
-      "darkMode": "Dunkler Modus",
-      "notifications": "Benachrichtigungen",
-      "language": "Sprache",
-      "timekeeping": "Zeitverwaltung",
-      "about": "Über GoalPulseX",
-      "logout": "Abmelden",
-      "selectLanguage": "Sprache auswählen",
-      "timezone": "Zeitzone",
-      "timeFormat": "Zeitformat",
-      "autoRefresh": "Automatisch aktualisieren",
-      "refreshEvery": "Live-Ergebnisse alle 30s aktualisieren",
-      "cancel": "Abbrechen",
-      "logoutQuestion": "Möchtest du dich wirklich abmelden?",
-      "loggedOut": "Erfolgreich abgemeldet",
-    },
-
-    "Italian": {
-      "darkMode": "Modalità Scura",
-      "notifications": "Notifiche",
-      "language": "Lingua",
-      "timekeeping": "Gestione Tempo",
-      "about": "Informazioni su GoalPulseX",
-      "logout": "Esci",
-      "selectLanguage": "Seleziona lingua",
-      "timezone": "Fuso orario",
-      "timeFormat": "Formato ora",
-      "autoRefresh": "Aggiornamento automatico",
-      "refreshEvery": "Aggiorna risultati ogni 30s",
-      "cancel": "Annulla",
-      "logoutQuestion": "Sei sicuro di voler uscire?",
-      "loggedOut": "Disconnessione riuscita",
-    },
   };
 
   String t(String key) {
     return translations[selectedLanguage]?[key] ?? key;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    autoRefreshEnabled = widget.autoRefreshEnabled;
   }
 
   @override
@@ -180,9 +101,7 @@ class _SettingsPageState extends State<SettingsPage> {
           title: t("darkMode"),
           trailing: Switch(
             value: themeProvider.isDarkMode,
-            onChanged: (val) {
-              themeProvider.toggleTheme(val);
-            },
+            onChanged: themeProvider.toggleTheme,
             activeColor: Colors.greenAccent,
           ),
         ),
@@ -191,11 +110,7 @@ class _SettingsPageState extends State<SettingsPage> {
           title: t("notifications"),
           trailing: Switch(
             value: notificationsEnabled,
-            onChanged: (val) {
-              setState(() {
-                notificationsEnabled = val;
-              });
-            },
+            onChanged: _toggleNotifications,
             activeColor: Colors.greenAccent,
           ),
         ),
@@ -248,10 +163,7 @@ class _SettingsPageState extends State<SettingsPage> {
           mainAxisSize: MainAxisSize.min,
           children: languages.map((lang) {
             return ListTile(
-              title: Text(
-                lang,
-                style: const TextStyle(color: Colors.white),
-              ),
+              title: Text(lang, style: const TextStyle(color: Colors.white)),
               trailing: selectedLanguage == lang
                   ? const Icon(Icons.check, color: Colors.greenAccent)
                   : null,
@@ -284,14 +196,10 @@ class _SettingsPageState extends State<SettingsPage> {
               children: [
                 ListTile(
                   leading: const Icon(Icons.public, color: Colors.greenAccent),
-                  title: Text(
-                    t("timezone"),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  subtitle: Text(
-                    selectedTimezone,
-                    style: const TextStyle(color: Colors.white54),
-                  ),
+                  title: Text(t("timezone"),
+                      style: const TextStyle(color: Colors.white)),
+                  subtitle: Text(selectedTimezone,
+                      style: const TextStyle(color: Colors.white54)),
                   onTap: () {
                     setState(() {
                       selectedTimezone = "Device Local Time";
@@ -302,20 +210,14 @@ class _SettingsPageState extends State<SettingsPage> {
                 ListTile(
                   leading:
                   const Icon(Icons.schedule, color: Colors.greenAccent),
-                  title: Text(
-                    t("timeFormat"),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  subtitle: Text(
-                    selectedTimeFormat,
-                    style: const TextStyle(color: Colors.white54),
-                  ),
+                  title: Text(t("timeFormat"),
+                      style: const TextStyle(color: Colors.white)),
+                  subtitle: Text(selectedTimeFormat,
+                      style: const TextStyle(color: Colors.white54)),
                   onTap: () {
                     setState(() {
                       selectedTimeFormat =
-                      selectedTimeFormat == "24-hour"
-                          ? "12-hour"
-                          : "24-hour";
+                      selectedTimeFormat == "24-hour" ? "12-hour" : "24-hour";
                     });
                     Navigator.pop(context);
                   },
@@ -330,14 +232,10 @@ class _SettingsPageState extends State<SettingsPage> {
                     setDialogState(() {});
                     widget.onAutoRefreshChanged(val);
                   },
-                  title: Text(
-                    t("autoRefresh"),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  subtitle: Text(
-                    t("refreshEvery"),
-                    style: const TextStyle(color: Colors.white54),
-                  ),
+                  title: Text(t("autoRefresh"),
+                      style: const TextStyle(color: Colors.white)),
+                  subtitle: Text(t("refreshEvery"),
+                      style: const TextStyle(color: Colors.white54)),
                 ),
               ],
             ),
@@ -370,14 +268,9 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: Text(
-          t("logout"),
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: Text(
-          t("logoutQuestion"),
-          style: const TextStyle(color: Colors.white70),
-        ),
+        title: Text(t("logout"), style: const TextStyle(color: Colors.white)),
+        content: Text(t("logoutQuestion"),
+            style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -390,10 +283,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 SnackBar(content: Text(t("loggedOut"))),
               );
             },
-            child: Text(
-              t("logout"),
-              style: const TextStyle(color: Colors.redAccent),
-            ),
+            child:
+            Text(t("logout"), style: const TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),

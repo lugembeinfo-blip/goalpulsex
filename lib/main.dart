@@ -10,7 +10,6 @@ import 'services/favorites_provider.dart';
 import 'services/theme_provider.dart';
 import 'widgets/match_card.dart';
 import 'models/news_model.dart';
-import 'models/match_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -19,8 +18,14 @@ import 'package:flutter/foundation.dart';
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
+
+  final title = message.notification?.title ?? "GoalPulseX";
+  final body = message.notification?.body ?? "";
+
+  await NotificationStore.saveNotification(title: title, body: body);
+
   if (kDebugMode) {
-    debugPrint("Background notification: ${message.notification?.title}");
+    debugPrint("Background notification saved: $title");
   }
 }
 
@@ -31,36 +36,31 @@ void main() async {
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Listen for foreground messages
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-    if (kDebugMode) {
-      debugPrint("Foreground notification: ${message.notification?.title}");
-    }
-
-    final title = message.notification?.title ?? "Notification";
-    final body = message.notification?.body ?? "";
-
-    await NotificationStore.saveNotification(
-      title: title,
-      body: body,
-    );
-
-    print("NOTIFICATION SAVED");
-  });
-
   await FirebaseMessaging.instance.requestPermission(
     alert: true,
     badge: true,
     sound: true,
   );
 
-  // Subscribe to global live updates topic for automatic notifications
-  await FirebaseMessaging.instance.subscribeToTopic("live_updates");
+  await FirebaseMessaging.instance.subscribeToTopic("goal_alerts");
 
   final token = await FirebaseMessaging.instance.getToken();
+
   if (kDebugMode) {
+    debugPrint("Subscribed to goal_alerts");
     debugPrint("FCM TOKEN: $token");
   }
+
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+    final title = message.notification?.title ?? "GoalPulseX";
+    final body = message.notification?.body ?? "";
+
+    await NotificationStore.saveNotification(title: title, body: body);
+
+    if (kDebugMode) {
+      debugPrint("Foreground notification saved: $title");
+    }
+  });
 
   runApp(
     MultiProvider(
@@ -84,8 +84,10 @@ class GoalPulseX extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           title: 'GoalPulseX',
           theme: ThemeData(
-            brightness: themeProvider.isDarkMode ? Brightness.dark : Brightness.light,
-            scaffoldBackgroundColor: themeProvider.isDarkMode ? const Color(0xFF0D0D0D) : Colors.white,
+            brightness:
+            themeProvider.isDarkMode ? Brightness.dark : Brightness.light,
+            scaffoldBackgroundColor:
+            themeProvider.isDarkMode ? const Color(0xFF0D0D0D) : Colors.white,
             textTheme: GoogleFonts.poppinsTextTheme(
               Theme.of(context).textTheme,
             ),
@@ -111,44 +113,10 @@ class _MainContainerState extends State<MainContainer> {
   @override
   void initState() {
     super.initState();
-    _setupInteractedMessage();
-  }
 
-  Future<void> _setupInteractedMessage() async {
-    // Handling message when app is in foreground
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      if (message.notification != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.greenAccent,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  message.notification!.title ?? "GoalPulseX Update",
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-                ),
-                Text(
-                  message.notification!.body ?? "",
-                  style: const TextStyle(color: Colors.black87),
-                ),
-              ],
-            ),
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
-    });
-
-    // Handling message when app is opened from notification
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      debugPrint("App opened from notification: ${message.data}");
-      // You can add navigation logic here, e.g., go to News tab
       setState(() {
-        _selectedIndex = 2; // Switch to News tab
+        _selectedIndex = 2;
       });
     });
   }
@@ -156,6 +124,7 @@ class _MainContainerState extends State<MainContainer> {
   @override
   Widget build(BuildContext context) {
     Widget currentScreen;
+
     switch (_selectedIndex) {
       case 0:
         currentScreen = HomePage(autoRefreshEnabled: autoRefreshEnabled);
@@ -268,16 +237,9 @@ class FavoritesScreen extends StatelessWidget {
       builder: (context, provider, child) {
         if (provider.favorites.isEmpty) {
           return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.sports_soccer, color: Colors.white54, size: 80),
-                SizedBox(height: 16),
-                Text(
-                  "No favorite matches yet",
-                  style: TextStyle(color: Colors.white70, fontSize: 18),
-                ),
-              ],
+            child: Text(
+              "No favorite matches yet",
+              style: TextStyle(color: Colors.white70, fontSize: 18),
             ),
           );
         }
@@ -287,10 +249,7 @@ class FavoritesScreen extends StatelessWidget {
           itemCount: provider.favorites.length,
           itemBuilder: (context, index) {
             final match = provider.favorites[index];
-            return MatchCard(
-              match: match,
-              selectedFilter: "Finished",
-            );
+            return MatchCard(match: match, selectedFilter: "Finished");
           },
         );
       },
@@ -302,16 +261,9 @@ class FavoritesScreen extends StatelessWidget {
       builder: (context, provider, child) {
         if (provider.favoriteNews.isEmpty) {
           return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.article_outlined, color: Colors.white54, size: 80),
-                SizedBox(height: 16),
-                Text(
-                  "No favorite news yet",
-                  style: TextStyle(color: Colors.white70, fontSize: 18),
-                ),
-              ],
+            child: Text(
+              "No favorite news yet",
+              style: TextStyle(color: Colors.white70, fontSize: 18),
             ),
           );
         }
@@ -363,7 +315,10 @@ class _FavoriteNewsCard extends StatelessWidget {
           article.title,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         subtitle: Text(
           article.date,
@@ -371,7 +326,9 @@ class _FavoriteNewsCard extends StatelessWidget {
         ),
         trailing: IconButton(
           icon: const Icon(Icons.favorite, color: Colors.redAccent),
-          onPressed: () => Provider.of<FavoritesProvider>(context, listen: false).toggleFavoriteNews(article),
+          onPressed: () =>
+              Provider.of<FavoritesProvider>(context, listen: false)
+                  .toggleFavoriteNews(article),
         ),
       ),
     );
