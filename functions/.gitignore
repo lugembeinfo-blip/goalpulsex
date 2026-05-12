@@ -1,2 +1,5 @@
+functions/serviceAccountKey.json
+serviceAccountKey.json
 node_modules/
-*.local
+build/
+.dart_tool/
